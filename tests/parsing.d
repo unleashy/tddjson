@@ -6,4 +6,7 @@ import tddjson;
 
 @safe:
 
-
+void testEmptyStringFails()
+{
+    parseJSON("").shouldThrow!(JSONException);
+}
