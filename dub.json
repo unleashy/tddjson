@@ -1,0 +1,44 @@
+{
+	"name": "tddjson",
+	"authors": [
+		"unleashy"
+	],
+	"description": "JSON parser made with TDD",
+	"license": "MIT",
+	"copyright": "Copyright © 2018, unleashy",
+
+    "targetPath": "bin",
+
+    "configurations": [
+        {
+            "name": "application",
+            "targetType": "executable"
+        },
+        {
+            "name": "library",
+            "targetType": "library"
+        },
+        {
+            "name": "unittest",
+            "targetType": "executable",
+            "targetName": "ut",
+            "sourcePaths": [
+                "tests"
+            ],
+            "excludedSourceFiles": [
+                "source/app.d",
+                "source/tddjson/package.d"
+            ],
+            "preBuildCommands-windows": [
+                "dub run unit-threaded -c gen_ut_main -- -f bin\\ut.d"
+            ],
+            "preBuildCommands-posix": [
+                "dub run unit-threaded -c gen_ut_main -- -f bin/ut.d"
+            ],
+            "mainSourceFile": "bin/ut.d",
+            "dependencies": {
+                "unit-threaded": "~>0.7.53"
+            }
+        }
+    ]
+}
