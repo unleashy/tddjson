@@ -16,3 +16,8 @@ void testParseBoolean()
     parseJSON("true").should  == true;
     parseJSON("false").should == false;
 }
+
+void testParseNull()
+{
+    parseJSON("null").should == null;
+}
