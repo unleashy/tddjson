@@ -4,7 +4,13 @@ import tddjson.exception;
 
 @safe:
 
-void parseJSON(in string s)
+bool parseJSON(in string s)
 {
-    throw new JSONException("");
+    if (s == "true") {
+        return true;
+    } else if (s == "false") {
+        return false;
+    } else {
+        throw new JSONException("");
+    }
 }
