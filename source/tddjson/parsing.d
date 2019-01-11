@@ -155,6 +155,7 @@ private ParseResult!double parseNumber(ref string str)
 private ParseResult!string parseString(ref string str)
 {
     import std.ascii : isControl;
+    import std.conv  : text;
 
     // make sure this is at least the start of a string token
     if (str.empty || str.front != '"') {
@@ -167,9 +168,30 @@ private ParseResult!string parseString(ref string str)
     string value;
 
     for (; !str.empty; str.popFront()) {
-        immutable c = str.front;
+        auto c = str.front;
         if (c == '"') {
             break;
+        } else if (c == '\\') {
+            str.popFront();
+            if (str.empty) {
+                throw new JSONException("expected escape sequence after backslash");
+            }
+
+            immutable escapeSeq = str.front;
+            switch (escapeSeq) {
+                case '"':  c = '"';  break;
+                case '\\': c = '\\'; break;
+                case '/':  c = '/';  break;
+                case 'b':  c = '\b'; break;
+                case 'f':  c = '\f'; break;
+                case 'n':  c = '\n'; break;
+                case 'r':  c = '\r'; break;
+                case 't':  c = '\t'; break;
+                default:
+                    throw new JSONException(text(
+                        `unrecognised escape sequence '\`, escapeSeq, `'`
+                    ));
+            }
         } else if (c.isControl()) {
             throw new JSONException("strings may not contain control characters");
         }
