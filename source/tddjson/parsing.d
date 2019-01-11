@@ -1,16 +1,16 @@
 module tddjson.parsing;
 
 import tddjson.exception;
+import tddjson.value;
 
 @safe:
 
-bool parseJSON(in string s)
+JSONValue parseJSON(in string s)
 {
-    if (s == "true") {
-        return true;
-    } else if (s == "false") {
-        return false;
-    } else {
-        throw new JSONException("");
+    switch (s) {
+        case "true":  return JSONValue(true);
+        case "false": return JSONValue(false);
+        case "null":  return JSONValue(JSONNull());
+        default:      throw new JSONException("parsing error");
     }
 }

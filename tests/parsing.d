@@ -19,5 +19,5 @@ void testParseBoolean()
 
 void testParseNull()
 {
-    parseJSON("null").should == null;
+    parseJSON("null").should == JSONNull();
 }
