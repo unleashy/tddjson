@@ -74,4 +74,17 @@ void testParseString()
     parseJSON(`"""`).shouldThrow!(JSONException);
     parseJSON(`"a " a"`).shouldThrow!(JSONException);
     parseJSON("\"\x00\x1F\"").shouldThrow!(JSONException);
+    parseJSON(`"\"`).shouldThrow!(JSONException);
+
+    parseJSON(`"\""`).should == `"`;
+    parseJSON(`"\\"`).should == `\`;
+    parseJSON(`"\/"`).should == `/`;
+    parseJSON(`"\b"`).should == "\b";
+    parseJSON(`"\f"`).should == "\f";
+    parseJSON(`"\n"`).should == "\n";
+    parseJSON(`"\r"`).should == "\r";
+    parseJSON(`"\t"`).should == "\t";
+    parseJSON(`"\\\ "`).shouldThrow!(JSONException);
+    parseJSON(`"\"\""`).should == `""`;
+    parseJSON(`"\"\"`).shouldThrow!(JSONException);
 }
