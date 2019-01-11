@@ -43,33 +43,14 @@ private void skipWhitespace(ref string str)
     }
 }
 
-private bool parseNull(ref string str)
+private bool parseLiteral(string name)(ref string str)
 {
-    enum Null = "null";
-
-    // check only the first Null.length characters...
-    if (str.length >= Null.length && str[0 .. Null.length] == Null) {
-        str = str[Null.length .. $]; // advance past the null
+    if (str.length >= name.length && str[0 .. name.length] == name) {
+        str = str[name.length .. $]; // advance past the literal
         return true;
     } else {
         return false;
     }
-}
-
-private ParseResult!bool parseBoolean(ref string str)
-{
-    enum True  = "true";
-    enum False = "false";
-
-    if (str.length >= True.length && str[0 .. True.length] == True) {
-        str = str[True.length .. $];
-        return parseResultOk(true);
-    } else if (str.length >= False.length && str[0 .. False.length] == False) {
-        str = str[False.length .. $];
-        return parseResultOk(false);
-    }
-
-    return parseResultFail!(bool);
 }
 
 private ParseResult!long parseNumber(ref string str)
@@ -105,17 +86,17 @@ private ParseResult!long parseNumber(ref string str)
 
 private JSONValue parseValue(ref string str)
 {
-    JSONValue value;
-
-    if (parseNull(str)) {
-        value = JSONValue(null);
-    } else if (auto parseResult = parseBoolean(str)) {
-        value = JSONValue(parseResult.value);
+    if (parseLiteral!"null"(str)) {
+        return JSONValue(null);
+    } else if (parseLiteral!"true"(str)) {
+        return JSONValue(true);
+    } else if (parseLiteral!"false"(str)) {
+        return JSONValue(false);
     } else if (auto parseResult = parseNumber(str)) {
-        value = JSONValue(parseResult.value);
+        return JSONValue(parseResult.value);
+    } else {
+        throw new JSONException("malformed input");
     }
-
-    return value;
 }
 
 JSONValue parseJSON(string str)
