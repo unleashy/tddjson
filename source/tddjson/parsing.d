@@ -53,13 +53,15 @@ private bool parseLiteral(string name)(ref string str)
     }
 }
 
-private ParseResult!long parseNumber(ref string str)
+private ParseResult!real parseNumber(ref string str)
 {
-    if (str.empty) return parseResultFail!(long);
+    if (str.empty) return parseResultFail!(real);
 
-    bool isNeg = false;
+    long value  = 0;
+    real factor = 1;
+
     if (str.front == '-') {
-        isNeg = true;
+        factor = -1;
 
         str.popFront();
         if (str.empty) {
@@ -67,7 +69,7 @@ private ParseResult!long parseNumber(ref string str)
         }
     }
 
-    long value = 0;
+    bool consumedOneDigit = false;
 
     if (str.front == '0') {
         str.popFront();
@@ -78,28 +80,40 @@ private ParseResult!long parseNumber(ref string str)
                 throw new JSONException("leading zeros are not allowed");
             }
         }
-    } else {
-        bool consumedOneDigit = false;
 
-        loop: for (; !str.empty; str.popFront()) {
-            immutable c = str.front;
-            switch (c) {
-                case '0': .. case '9':
-                    value = value * 10 + (c - '0');
-                    consumedOneDigit = true;
-                    break;
+        consumedOneDigit = true;
+    }
 
-                default:
-                    if (consumedOneDigit) {
-                        break loop;
-                    } else {
-                        throw new JSONException("unexpected character in number token");
-                    }
-            }
+    bool consumedPoint = false;
+
+    loop: for (; !str.empty; str.popFront()) {
+        immutable c = str.front;
+        switch (c) {
+            case '0': .. case '9':
+                if (consumedPoint) factor /= 10;
+                value = value * 10 + (c - '0');
+                consumedOneDigit = true;
+                break;
+
+            case '.':
+                if (!consumedOneDigit || consumedPoint) {
+                    throw new JSONException("stray decimal point in number token");
+                }
+
+                consumedOneDigit = false;
+                consumedPoint = true;
+                break;
+
+            default:
+                break loop;
         }
     }
 
-    return parseResultOk(isNeg ? -value : value);
+    if (!consumedOneDigit) {
+        throw new JSONException("unexpected character in number token");
+    }
+
+    return parseResultOk(value * factor);
 }
 
 private JSONValue parseValue(ref string str)

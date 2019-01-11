@@ -11,7 +11,7 @@ union JSONValueUnion
 {
     typeof(null) null_;
     bool boolean;
-    long number;
+    real number;
 }
 
 alias JSONValue = TaggedAlgebraic!JSONValueUnion;
