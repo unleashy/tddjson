@@ -44,17 +44,17 @@ void testParseNumber()
     parseJSON("-01").shouldThrow!(JSONException);
     parseJSON("--75").shouldThrow!(JSONException);
 
-    (cast(real) parseJSON("0.0755")).should ~ 0.0755;
+    parseJSON("0.0755").should == 0.0755;
     parseJSON("3.").shouldThrow!(JSONException);
     parseJSON(".3").shouldThrow!(JSONException);
-    (cast(real) parseJSON("-3.14")).should ~ -3.14;
+    parseJSON("-3.14").should == -3.14;
     parseJSON("-.075").shouldThrow!(JSONException);
     parseJSON("5.12.").shouldThrow!(JSONException);
 
     parseJSON("0e1").should     == 0;
     parseJSON("100e5").should   == 100e5;
     parseJSON("100E+5").should  == 100e5;
-    (cast(real) parseJSON("-100e-5")).should ~ -100e-5;
+    parseJSON("-100e-5").should == -100e-5;
     parseJSON("100e+5").should  == 100e5;
     parseJSON("100e").shouldThrow!(JSONException);
     parseJSON("100.e5").shouldThrow!(JSONException);
