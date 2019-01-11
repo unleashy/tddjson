@@ -50,4 +50,18 @@ void testParseNumber()
     (cast(real) parseJSON("-3.14")).should ~ -3.14;
     parseJSON("-.075").shouldThrow!(JSONException);
     parseJSON("5.12.").shouldThrow!(JSONException);
+
+    parseJSON("0e1").should     == 0;
+    parseJSON("100e5").should   == 100e5;
+    parseJSON("100E+5").should  == 100e5;
+    parseJSON("-100e-5").should == -100e-5;
+    parseJSON("100e+5").should  == 100e5;
+    parseJSON("100e").shouldThrow!(JSONException);
+    parseJSON("100.e5").shouldThrow!(JSONException);
+    parseJSON("100e-").shouldThrow!(JSONException);
+    parseJSON("100E+").shouldThrow!(JSONException);
+    parseJSON("100E.5").shouldThrow!(JSONException);
+    parseJSON("100e-5-").shouldThrow!(JSONException);
+    parseJSON("100ee5").shouldThrow!(JSONException);
+    parseJSON("100e+5.0").shouldThrow!(JSONException);
 }
