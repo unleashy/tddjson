@@ -12,6 +12,7 @@ void testMalformedFails()
     parseJSON(" \t\r\n").shouldThrow!(JSONException);
     parseJSON("true0").shouldThrow!(JSONException);
     parseJSON("123,").shouldThrow!(JSONException);
+    parseJSON("a").shouldThrow!(JSONException);
 }
 
 void testParseBoolean()
