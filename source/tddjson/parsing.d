@@ -278,6 +278,66 @@ private ParseResult!(JSONValue[]) parseArray(ref string str)
     return parseResultOk(array);
 }
 
+private ParseResult!(JSONValue[string]) parseObject(ref string str)
+{
+    skipWhitespace(str);
+
+    if (str.empty || str.front != '{') {
+        return parseResultFail!(JSONValue[string]);
+    }
+
+    str.popFront();
+    skipWhitespace(str);
+
+    JSONValue[string] obj;
+    while (!str.empty && str.front != '}') {
+        string key;
+        if (auto result = parseString(str)) {
+            key = result.value;
+
+            if (key in obj) {
+                throw new JSONException(
+                    "key '" ~ key ~ "' has already been used in object"
+                );
+            }
+        } else {
+            throw new JSONException("expected string key in object");
+        }
+
+        skipWhitespace(str);
+        if (str.empty || str.front != ':') {
+            throw new JSONException("expected colon after object key");
+        }
+
+        str.popFront();
+        skipWhitespace(str);
+
+        obj[key] = parseValue(str);
+
+        skipWhitespace(str);
+
+        if (str.empty || str.front != ',') {
+            break;
+        }
+
+        str.popFront();
+        skipWhitespace(str);
+
+        if (str.empty || str.front == '}') {
+            throw new JSONException("trailing comma in object");
+        }
+    }
+
+    if (str.empty || str.front != '}') {
+        throw new JSONException("unclosed object");
+    }
+
+    str.popFront();
+    skipWhitespace(str);
+
+    return parseResultOk(obj);
+}
+
 private JSONValue parseValue(ref string str)
 {
     if (parseLiteral!"null"(str)) {
@@ -291,6 +351,8 @@ private JSONValue parseValue(ref string str)
     } else if (auto parseResult = parseString(str)) {
         return JSONValue(parseResult.value);
     } else if (auto parseResult = parseArray(str)) {
+        return JSONValue(parseResult.value);
+    } else if (auto parseResult = parseObject(str)) {
         return JSONValue(parseResult.value);
     } else {
         throw new JSONException("malformed input");

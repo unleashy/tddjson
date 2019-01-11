@@ -13,6 +13,7 @@ struct JSONValue
         double number;
         string str;
         JSONValue[] array;
+        JSONValue[string] obj;
     }
 
     TaggedAlgebraic!U payload;
