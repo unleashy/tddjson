@@ -21,3 +21,8 @@ void testParseNull()
 {
     parseJSON("null").should == null;
 }
+
+void testParseNumber()
+{
+    parseJSON("0").should == 0;
+}
