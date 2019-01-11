@@ -11,6 +11,7 @@ JSONValue parseJSON(in string s)
         case "true":  return JSONValue(true);
         case "false": return JSONValue(false);
         case "null":  return JSONValue(null);
+        case "0":     return JSONValue(0);
         default:      throw new JSONException("parsing error");
     }
 }
