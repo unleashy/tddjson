@@ -57,6 +57,16 @@ private ParseResult!long parseNumber(ref string str)
 {
     if (str.empty) return parseResultFail!(long);
 
+    bool isNeg = false;
+    if (str.front == '-') {
+        isNeg = true;
+
+        str.popFront();
+        if (str.empty) {
+            throw new JSONException("stray minus sign");
+        }
+    }
+
     long value = 0;
 
     if (str.front == '0') {
@@ -69,19 +79,27 @@ private ParseResult!long parseNumber(ref string str)
             }
         }
     } else {
+        bool consumedOneDigit = false;
+
         loop: for (; !str.empty; str.popFront()) {
             immutable c = str.front;
             switch (c) {
                 case '0': .. case '9':
                     value = value * 10 + (c - '0');
+                    consumedOneDigit = true;
                     break;
 
-                default: break loop;
+                default:
+                    if (consumedOneDigit) {
+                        break loop;
+                    } else {
+                        throw new JSONException("unexpected character in number token");
+                    }
             }
         }
     }
 
-    return parseResultOk(value);
+    return parseResultOk(isNeg ? -value : value);
 }
 
 private JSONValue parseValue(ref string str)
