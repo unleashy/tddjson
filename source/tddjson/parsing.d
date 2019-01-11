@@ -47,8 +47,6 @@ private bool parseNull(ref string str)
 {
     enum Null = "null";
 
-    skipWhitespace(str);
-
     // check only the first Null.length characters...
     if (str.length >= Null.length && str[0 .. Null.length] == Null) {
         str = str[Null.length .. $]; // advance past the null
@@ -63,8 +61,6 @@ private ParseResult!bool parseBoolean(ref string str)
     enum True  = "true";
     enum False = "false";
 
-    skipWhitespace(str);
-
     if (str.length >= True.length && str[0 .. True.length] == True) {
         str = str[True.length .. $];
         return parseResultOk(true);
@@ -78,20 +74,18 @@ private ParseResult!bool parseBoolean(ref string str)
 
 private ParseResult!long parseNumber(ref string str)
 {
-    skipWhitespace(str);
-
     if (str.empty) return parseResultFail!(long);
 
     long value = 0;
 
-    for (; !str.empty; str.popFront()) {
+    loop: for (; !str.empty; str.popFront()) {
         immutable c = str.front;
         switch (c) {
             case '0': .. case '9':
                 value = value * 10 + (c - '0');
                 break;
 
-            default: break;
+            default: break loop;
         }
     }
 
