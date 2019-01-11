@@ -44,7 +44,7 @@ void testParseNumber()
     parseJSON("-01").shouldThrow!(JSONException);
     parseJSON("--75").shouldThrow!(JSONException);
 
-    parseJSON("0.0755").should == 0.0755;
+    parseJSON("0.0125").should == 0.0125;
     parseJSON("3.").shouldThrow!(JSONException);
     parseJSON(".3").shouldThrow!(JSONException);
     parseJSON("-3.14").should == -3.14;

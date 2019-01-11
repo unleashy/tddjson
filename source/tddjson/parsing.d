@@ -53,14 +53,14 @@ private bool parseLiteral(string name)(ref string str)
     }
 }
 
-private ParseResult!real parseNumber(ref string str)
+private ParseResult!double parseNumber(ref string str)
 {
     import std.ascii : isDigit, toLower;
-    import std.conv  : parse;
+    import std.conv  : ConvException, parse;
 
     // ensure this is at least the start of a possible number token
     if (str.empty || (str.front != '-' && !str.front.isDigit())) {
-        return parseResultFail!(real);
+        return parseResultFail!(double);
     }
 
     auto strOriginal = str[];
@@ -143,7 +143,13 @@ private ParseResult!real parseNumber(ref string str)
         throw new JSONException("unexpected character in number token");
     }
 
-    return parseResultOk(parse!real(strOriginal));
+    try {
+        return parseResultOk(parse!double(strOriginal));
+    } catch (ConvException e) {
+        throw new JSONException(
+            e.msg ~ " while converting number token to floating-point"
+        );
+    }
 }
 
 private JSONValue parseValue(ref string str)
