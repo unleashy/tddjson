@@ -9,7 +9,7 @@ struct JSONNull
 
 union JSONValueUnion
 {
-    JSONNull null_;
+    typeof(null) null_;
     bool boolean;
 }
 

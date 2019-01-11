@@ -10,7 +10,7 @@ JSONValue parseJSON(in string s)
     switch (s) {
         case "true":  return JSONValue(true);
         case "false": return JSONValue(false);
-        case "null":  return JSONValue(JSONNull());
+        case "null":  return JSONValue(null);
         default:      throw new JSONException("parsing error");
     }
 }
