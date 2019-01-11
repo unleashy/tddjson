@@ -55,7 +55,7 @@ private bool parseLiteral(string name)(ref string str)
 
 private ParseResult!real parseNumber(ref string str)
 {
-    import std.ascii : isDigit;
+    import std.ascii : isDigit, toLower;
 
     // ensure this is at least the start of a possible number token
     if (str.empty || (str.front != '-' && !str.front.isDigit())) {
@@ -91,7 +91,7 @@ private ParseResult!real parseNumber(ref string str)
 
     bool consumedPoint = false;
 
-    loop: for (; !str.empty; str.popFront()) {
+Lnumloop: for (; !str.empty; str.popFront()) {
         immutable c = str.front;
         switch (c) {
             case '0': .. case '9':
@@ -110,7 +110,43 @@ private ParseResult!real parseNumber(ref string str)
                 break;
 
             default:
-                break loop;
+                break Lnumloop;
+        }
+    }
+
+    // try to parse an exponent if available
+    if (consumedOneDigit && !str.empty && str.front.toLower() == 'e') {
+        str.popFront();
+
+        // try for minus or plus sign
+        if (str.empty || (str.front != '-' && str.front != '+' && !str.front.isDigit())) {
+            throw new JSONException("expected number for exponent");
+        }
+
+        immutable isNeg = str.front == '-';
+        if (str.front == '-' || str.front == '+') {
+            str.popFront();
+        }
+
+        long exp = 0;
+        consumedOneDigit = false;
+
+    Lexploop: for (; !str.empty; str.popFront()) {
+            immutable c = str.front;
+            switch (c) {
+                case '0': .. case '9':
+                    exp = exp * 10 + (c - '0');
+                    consumedOneDigit = true;
+                    break;
+
+                default: break Lexploop;
+            }
+        }
+
+        if (isNeg) {
+            factor /= 10^^exp;
+        } else {
+            factor *= 10^^exp;
         }
     }
 
