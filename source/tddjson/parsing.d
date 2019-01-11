@@ -154,7 +154,7 @@ private ParseResult!double parseNumber(ref string str)
 
 private ParseResult!string parseString(ref string str)
 {
-    import std.ascii : isControl;
+    import std.ascii : isControl, isDigit, isHexDigit;
     import std.conv  : text;
 
     // make sure this is at least the start of a string token
@@ -187,6 +187,36 @@ private ParseResult!string parseString(ref string str)
                 case 'n':  c = '\n'; break;
                 case 'r':  c = '\r'; break;
                 case 't':  c = '\t'; break;
+                case 'u':
+                    dchar escapedChar = 0;
+                    foreach (i; 0 .. 4) {
+                        str.popFront();
+
+                        if (str.empty) {
+                            throw new JSONException(text(
+                                `expected 4 hexadecimal digits after \\u, not `, i
+                            ));
+                        }
+
+                        immutable digit = str.front;
+                        if (digit.isDigit()) {
+                            escapedChar = escapedChar * 16 + (digit - '0');
+                        } else if (digit.isHexDigit()) {
+                            // we know this must be A-F or a-f, since the previous
+                            // if handled 0-9 for us
+                            // digit | 0x20 = ""tolower""
+                            // any of a-f minus 87 equals their value, so we do that!
+                            escapedChar = escapedChar * 16 + ((digit | 0x20) - 87);
+                        } else {
+                            throw new JSONException(text(
+                                `expected 4 hexadecimal digits after \\u, not `, i
+                            ));
+                        }
+                    }
+
+                    c = escapedChar;
+                    break;
+
                 default:
                     throw new JSONException(text(
                         `unrecognised escape sequence '\`, escapeSeq, `'`
