@@ -78,14 +78,25 @@ private ParseResult!long parseNumber(ref string str)
 
     long value = 0;
 
-    loop: for (; !str.empty; str.popFront()) {
-        immutable c = str.front;
-        switch (c) {
-            case '0': .. case '9':
-                value = value * 10 + (c - '0');
-                break;
+    if (str.front == '0') {
+        str.popFront();
 
-            default: break loop;
+        if (!str.empty) {
+            immutable c = str.front;
+            if (c >= '0' && c <= '9') {
+                throw new JSONException("leading zeros are not allowed");
+            }
+        }
+    } else {
+        loop: for (; !str.empty; str.popFront()) {
+            immutable c = str.front;
+            switch (c) {
+                case '0': .. case '9':
+                    value = value * 10 + (c - '0');
+                    break;
+
+                default: break loop;
+            }
         }
     }
 
