@@ -55,8 +55,10 @@ private bool parseLiteral(string name)(ref string str)
 
 private ParseResult!real parseNumber(ref string str)
 {
+    import std.ascii : isDigit;
+
     // ensure this is at least the start of a possible number token
-    if (str.empty || (str.front != '-' && (str.front < '0' || str.front > '9'))) {
+    if (str.empty || (str.front != '-' && !str.front.isDigit())) {
         return parseResultFail!(real);
     }
 
@@ -79,7 +81,7 @@ private ParseResult!real parseNumber(ref string str)
 
         if (!str.empty) {
             immutable c = str.front;
-            if (c >= '0' && c <= '9') {
+            if (c.isDigit()) {
                 throw new JSONException("leading zeros are not allowed");
             }
         }
