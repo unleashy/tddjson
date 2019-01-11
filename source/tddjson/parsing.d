@@ -152,6 +152,41 @@ private ParseResult!double parseNumber(ref string str)
     }
 }
 
+private ParseResult!string parseString(ref string str)
+{
+    import std.ascii : isControl;
+
+    // make sure this is at least the start of a string token
+    if (str.empty || str.front != '"') {
+        return parseResultFail!(string);
+    }
+
+    // since we know the first char is a quotation mark, skip it
+    str.popFront();
+
+    string value;
+
+    for (; !str.empty; str.popFront()) {
+        immutable c = str.front;
+        if (c == '"') {
+            break;
+        } else if (c.isControl()) {
+            throw new JSONException("strings may not contain control characters");
+        }
+
+        value ~= c;
+    }
+
+    // expecting closing quotation mark here
+    if (str.empty || str.front != '"') {
+        throw new JSONException("unclosed string");
+    }
+
+    // skip closing quotation mark...
+    str.popFront();
+    return parseResultOk(value);
+}
+
 private JSONValue parseValue(ref string str)
 {
     if (parseLiteral!"null"(str)) {
@@ -161,6 +196,8 @@ private JSONValue parseValue(ref string str)
     } else if (parseLiteral!"false"(str)) {
         return JSONValue(false);
     } else if (auto parseResult = parseNumber(str)) {
+        return JSONValue(parseResult.value);
+    } else if (auto parseResult = parseString(str)) {
         return JSONValue(parseResult.value);
     } else {
         throw new JSONException("malformed input");
