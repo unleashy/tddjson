@@ -4,15 +4,22 @@ import taggedalgebraic;
 
 @safe:
 
-struct JSONNull
-{}
-
-union JSONValueUnion
+struct JSONValue
 {
-    typeof(null) null_;
-    bool boolean;
-    double number;
-    string str;
-}
+    union U
+    {
+        typeof(null) null_;
+        bool boolean;
+        double number;
+        string str;
+        JSONValue[] array;
+    }
 
-alias JSONValue = TaggedAlgebraic!JSONValueUnion;
+    TaggedAlgebraic!U payload;
+    alias payload this;
+
+    this(T)(T value)
+    {
+        payload = value;
+    }
+}

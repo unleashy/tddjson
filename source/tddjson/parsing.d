@@ -239,6 +239,45 @@ private ParseResult!string parseString(ref string str)
     return parseResultOk(value);
 }
 
+private ParseResult!(JSONValue[]) parseArray(ref string str)
+{
+    skipWhitespace(str);
+
+    if (str.empty || str.front != '[') {
+        return parseResultFail!(JSONValue[]);
+    }
+
+    str.popFront();
+    skipWhitespace(str);
+
+    JSONValue[] array;
+    while (!str.empty && str.front != ']') {
+        array ~= parseValue(str);
+
+        skipWhitespace(str);
+
+        if (str.empty || str.front != ',') {
+            break;
+        }
+
+        str.popFront();
+        skipWhitespace(str);
+
+        if (str.empty || str.front == ']') {
+            throw new JSONException("trailing comma in array");
+        }
+    }
+
+    if (str.empty || str.front != ']') {
+        throw new JSONException("unclosed array");
+    }
+
+    str.popFront();
+    skipWhitespace(str);
+
+    return parseResultOk(array);
+}
+
 private JSONValue parseValue(ref string str)
 {
     if (parseLiteral!"null"(str)) {
@@ -250,6 +289,8 @@ private JSONValue parseValue(ref string str)
     } else if (auto parseResult = parseNumber(str)) {
         return JSONValue(parseResult.value);
     } else if (auto parseResult = parseString(str)) {
+        return JSONValue(parseResult.value);
+    } else if (auto parseResult = parseArray(str)) {
         return JSONValue(parseResult.value);
     } else {
         throw new JSONException("malformed input");
