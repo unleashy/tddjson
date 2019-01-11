@@ -126,3 +126,25 @@ void testParseArray() @system
     parseJSON("[1,").shouldThrow!(JSONException);
     parseJSON("[[1]").shouldThrow!(JSONException);
 }
+
+void testParseObject() @system
+{
+    parseJSON("{}").should == cast(JSONValue[string]) null;
+    parseJSON(" { } ").should == cast(JSONValue[string]) null;
+    parseJSON("{").shouldThrow!(JSONException);
+    parseJSON(`{ "a": 1 }`).should == JSONValue(["a": JSONValue(1)]);
+    parseJSON(`{ "b": true , "c": "d" }`).should == JSONValue([
+        "b": JSONValue(true),
+        "c": JSONValue("d")
+    ]);
+    parseJSON(`{ "e" : null `).shouldThrow!(JSONException);
+    parseJSON(`{ "f" : false, `).shouldThrow!(JSONException);
+    parseJSON(`{ "g" : [1], }`).shouldThrow!(JSONException);
+    parseJSON(`{ "i" : [ } `).shouldThrow!(JSONException);
+    parseJSON(`{ 1 : "j" }`).shouldThrow!(JSONException);
+    parseJSON(`{ a : "j" }`).shouldThrow!(JSONException);
+    parseJSON(`{ " : "k" }`).shouldThrow!(JSONException);
+    parseJSON(`{ "l"; "m" }`).shouldThrow!(JSONException);
+    parseJSON(`"l": "m" }`).shouldThrow!(JSONException);
+    parseJSON(`{"a": 1, "a": 2}`).shouldThrow!(JSONException);
+}
