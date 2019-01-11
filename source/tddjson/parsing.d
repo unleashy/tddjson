@@ -56,18 +56,16 @@ private bool parseLiteral(string name)(ref string str)
 private ParseResult!real parseNumber(ref string str)
 {
     import std.ascii : isDigit, toLower;
+    import std.conv  : parse;
 
     // ensure this is at least the start of a possible number token
     if (str.empty || (str.front != '-' && !str.front.isDigit())) {
         return parseResultFail!(real);
     }
 
-    long value  = 0;
-    real factor = 1;
+    auto strOriginal = str[];
 
     if (str.front == '-') {
-        factor = -1;
-
         str.popFront();
         if (str.empty) {
             throw new JSONException("stray minus sign");
@@ -91,12 +89,11 @@ private ParseResult!real parseNumber(ref string str)
 
     bool consumedPoint = false;
 
-Lnumloop: for (; !str.empty; str.popFront()) {
+    Lnumloop:
+    for (; !str.empty; str.popFront()) {
         immutable c = str.front;
         switch (c) {
             case '0': .. case '9':
-                if (consumedPoint) factor /= 10;
-                value = value * 10 + (c - '0');
                 consumedOneDigit = true;
                 break;
 
@@ -123,30 +120,22 @@ Lnumloop: for (; !str.empty; str.popFront()) {
             throw new JSONException("expected number for exponent");
         }
 
-        immutable isNeg = str.front == '-';
         if (str.front == '-' || str.front == '+') {
             str.popFront();
         }
 
-        long exp = 0;
         consumedOneDigit = false;
 
-    Lexploop: for (; !str.empty; str.popFront()) {
+        Lexploop:
+        for (; !str.empty; str.popFront()) {
             immutable c = str.front;
             switch (c) {
                 case '0': .. case '9':
-                    exp = exp * 10 + (c - '0');
                     consumedOneDigit = true;
                     break;
 
                 default: break Lexploop;
             }
-        }
-
-        if (isNeg) {
-            factor /= 10^^exp;
-        } else {
-            factor *= 10^^exp;
         }
     }
 
@@ -154,7 +143,7 @@ Lnumloop: for (; !str.empty; str.popFront()) {
         throw new JSONException("unexpected character in number token");
     }
 
-    return parseResultOk(value * factor);
+    return parseResultOk(parse!real(strOriginal));
 }
 
 private JSONValue parseValue(ref string str)
