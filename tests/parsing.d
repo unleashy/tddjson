@@ -32,4 +32,8 @@ void testParseNull()
 void testParseNumber()
 {
     parseJSON("0").should == 0;
+    parseJSON("1").should == 1;
+    parseJSON("1023456789").should == 1_023_456_789;
+    parseJSON("01023456789").shouldThrow!(JSONException);
+    parseJSON("0003").shouldThrow!(JSONException);
 }
