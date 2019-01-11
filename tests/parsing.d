@@ -75,6 +75,7 @@ void testParseString()
     parseJSON(`"a " a"`).shouldThrow!(JSONException);
     parseJSON("\"\x00\x1F\"").shouldThrow!(JSONException);
     parseJSON(`"\"`).shouldThrow!(JSONException);
+    parseJSON(`"\`).shouldThrow!(JSONException);
 
     parseJSON(`"\""`).should == `"`;
     parseJSON(`"\\"`).should == `\`;
