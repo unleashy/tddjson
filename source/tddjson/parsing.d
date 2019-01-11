@@ -55,7 +55,10 @@ private bool parseLiteral(string name)(ref string str)
 
 private ParseResult!real parseNumber(ref string str)
 {
-    if (str.empty) return parseResultFail!(real);
+    // ensure this is at least the start of a possible number token
+    if (str.empty || (str.front != '-' && (str.front < '0' || str.front > '9'))) {
+        return parseResultFail!(real);
+    }
 
     long value  = 0;
     real factor = 1;
