@@ -6,10 +6,12 @@ import tddjson;
 
 @safe:
 
-void testEmptyStringFails()
+void testMalformedFails()
 {
     parseJSON("").shouldThrow!(JSONException);
     parseJSON(" \t\r\n").shouldThrow!(JSONException);
+    parseJSON("true0").shouldThrow!(JSONException);
+    parseJSON("123,").shouldThrow!(JSONException);
 }
 
 void testParseBoolean()
