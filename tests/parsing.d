@@ -65,3 +65,13 @@ void testParseNumber()
     parseJSON("100ee5").shouldThrow!(JSONException);
     parseJSON("100e+5.0").shouldThrow!(JSONException);
 }
+
+void testParseString()
+{
+    parseJSON(`""`).should    == "";
+    parseJSON(`"abc"`).should == "abc";
+    parseJSON(`"`).shouldThrow!(JSONException);
+    parseJSON(`"""`).shouldThrow!(JSONException);
+    parseJSON(`"a " a"`).shouldThrow!(JSONException);
+    parseJSON("\"\x00\x1F\"").shouldThrow!(JSONException);
+}
