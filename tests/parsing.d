@@ -54,7 +54,7 @@ void testParseNumber()
     parseJSON("0e1").should     == 0;
     parseJSON("100e5").should   == 100e5;
     parseJSON("100E+5").should  == 100e5;
-    parseJSON("-100e-5").should == -100e-5;
+    (cast(real) parseJSON("-100e-5")).should ~ -100e-5;
     parseJSON("100e+5").should  == 100e5;
     parseJSON("100e").shouldThrow!(JSONException);
     parseJSON("100.e5").shouldThrow!(JSONException);
