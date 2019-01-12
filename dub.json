@@ -15,10 +15,6 @@
 
     "configurations": [
         {
-            "name": "application",
-            "targetType": "executable"
-        },
-        {
             "name": "library",
             "targetType": "library"
         },
@@ -30,7 +26,6 @@
                 "tests"
             ],
             "excludedSourceFiles": [
-                "source/app.d",
                 "source/tddjson/package.d"
             ],
             "preBuildCommands-windows": [
