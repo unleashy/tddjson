@@ -154,6 +154,7 @@ private ParseResult!double parseNumber(ref string str)
 
 private ParseResult!string parseString(ref string str)
 {
+    import std.array : appender;
     import std.ascii : isControl, isDigit, isHexDigit;
     import std.conv  : text;
 
@@ -165,7 +166,7 @@ private ParseResult!string parseString(ref string str)
     // since we know the first char is a quotation mark, skip it
     str.popFront();
 
-    string value;
+    auto value = appender!(string);
 
     for (; !str.empty; str.popFront()) {
         auto c = str.front;
@@ -236,11 +237,13 @@ private ParseResult!string parseString(ref string str)
 
     // skip closing quotation mark...
     str.popFront();
-    return parseResultOk(value);
+    return parseResultOk(value.data);
 }
 
 private ParseResult!(JSONValue[]) parseArray(ref string str)
 {
+    import std.array : appender;
+
     skipWhitespace(str);
 
     if (str.empty || str.front != '[') {
@@ -250,7 +253,7 @@ private ParseResult!(JSONValue[]) parseArray(ref string str)
     str.popFront();
     skipWhitespace(str);
 
-    JSONValue[] array;
+    auto array = appender!(JSONValue[]);
     while (!str.empty && str.front != ']') {
         array ~= parseValue(str);
 
@@ -275,7 +278,7 @@ private ParseResult!(JSONValue[]) parseArray(ref string str)
     str.popFront();
     skipWhitespace(str);
 
-    return parseResultOk(array);
+    return parseResultOk(array.data);
 }
 
 private ParseResult!(JSONValue[string]) parseObject(ref string str)
