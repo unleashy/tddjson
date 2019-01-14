@@ -239,20 +239,24 @@ private ParseResult!string parseString(ref string str)
     return parseResultOk(value);
 }
 
-private ParseResult!(JSONValue[]) parseArray(ref string str)
+private bool parseAggregate(string delims, alias fun)(ref string str)
 {
+    static assert(delims.length == 2, "need two delimiters for each side!");
+
+    enum leftDelim  = delims[0];
+    enum rightDelim = delims[1];
+
     skipWhitespace(str);
 
-    if (str.empty || str.front != '[') {
-        return parseResultFail!(JSONValue[]);
+    if (str.empty || str.front != leftDelim) {
+        return false;
     }
 
     str.popFront();
     skipWhitespace(str);
 
-    JSONValue[] array;
-    while (!str.empty && str.front != ']') {
-        array ~= parseValue(str);
+    while (!str.empty && str.front != rightDelim) {
+        fun();
 
         skipWhitespace(str);
 
@@ -263,34 +267,37 @@ private ParseResult!(JSONValue[]) parseArray(ref string str)
         str.popFront();
         skipWhitespace(str);
 
-        if (str.empty || str.front == ']') {
-            throw new JSONException("trailing comma in array");
+        if (str.empty || str.front == rightDelim) {
+            throw new JSONException("trailing comma not allowed");
         }
     }
 
-    if (str.empty || str.front != ']') {
-        throw new JSONException("unclosed array");
+    if (str.empty || str.front != rightDelim) {
+        throw new JSONException("unclosed aggregate");
     }
 
     str.popFront();
     skipWhitespace(str);
 
-    return parseResultOk(array);
+    return true;
+}
+
+private ParseResult!(JSONValue[]) parseArray(ref string str)
+{
+    JSONValue[] array;
+
+    immutable successful = str.parseAggregate!("[]", {
+        array ~= parseValue(str);
+    });
+
+    return successful ? parseResultOk(array) : parseResultFail!(typeof(array));
 }
 
 private ParseResult!(JSONValue[string]) parseObject(ref string str)
 {
-    skipWhitespace(str);
-
-    if (str.empty || str.front != '{') {
-        return parseResultFail!(JSONValue[string]);
-    }
-
-    str.popFront();
-    skipWhitespace(str);
-
     JSONValue[string] obj;
-    while (!str.empty && str.front != '}') {
+
+    immutable successful = str.parseAggregate!("{}", {
         string key;
         if (auto result = parseString(str)) {
             key = result.value;
@@ -313,29 +320,9 @@ private ParseResult!(JSONValue[string]) parseObject(ref string str)
         skipWhitespace(str);
 
         obj[key] = parseValue(str);
+    });
 
-        skipWhitespace(str);
-
-        if (str.empty || str.front != ',') {
-            break;
-        }
-
-        str.popFront();
-        skipWhitespace(str);
-
-        if (str.empty || str.front == '}') {
-            throw new JSONException("trailing comma in object");
-        }
-    }
-
-    if (str.empty || str.front != '}') {
-        throw new JSONException("unclosed object");
-    }
-
-    str.popFront();
-    skipWhitespace(str);
-
-    return parseResultOk(obj);
+    return successful ? parseResultOk(obj) : parseResultFail!(typeof(obj));
 }
 
 private JSONValue parseValue(ref string str)
