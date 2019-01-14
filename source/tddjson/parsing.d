@@ -53,17 +53,22 @@ private bool parseLiteral(string name)(ref string str)
     }
 }
 
+private string spanBetweenSlices(in string left, in string right) @trusted
+{
+    return left[0 .. (right.ptr - left.ptr)];
+}
+
 private ParseResult!double parseNumber(ref string str)
 {
     import std.ascii : isDigit, toLower;
-    import std.conv  : ConvException, parse;
+    import std.conv  : ConvException, to;
 
     // ensure this is at least the start of a possible number token
     if (str.empty || (str.front != '-' && !str.front.isDigit())) {
         return parseResultFail!(double);
     }
 
-    auto strOriginal = str[];
+    auto originalStr = str;
 
     if (str.front == '-') {
         str.popFront();
@@ -144,10 +149,13 @@ private ParseResult!double parseNumber(ref string str)
     }
 
     try {
-        return parseResultOk(parse!double(strOriginal));
+        // only try to convert the text we actually processed!
+        auto processedSlice = spanBetweenSlices(originalStr, str);
+        return parseResultOk(to!double(processedSlice));
     } catch (ConvException e) {
         throw new JSONException(
-            e.msg ~ " while converting number token to floating-point"
+            e.msg ~ " while converting number token to floating-point",
+            e
         );
     }
 }
