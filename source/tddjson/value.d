@@ -67,7 +67,7 @@ struct JSONValue
                    mixin("value_." ~ it.stringof) == rhs;
         }
 
-        inout(typeof(it)) as(T : typeof(it))() @nogc @trusted pure inout
+        inout(typeof(it)) as(T : typeof(it))() @trusted pure inout
         in (
             type_ == __traits(getAttributes, it)[0],
             format!"type mismatch: expected %s but got %s"(

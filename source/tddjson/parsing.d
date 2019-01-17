@@ -8,25 +8,30 @@ import tddjson.value;
 
 @safe:
 
-private struct ParseResult(T)
+private struct ParseResult
 {
-    T value;
+    JSONValue value;
     bool successful;
 
     bool opCast(T : bool)() const
     {
         return successful;
     }
+
+    ParseResult opBinary(string op : "|")(auto ref ParseResult rhs)
+    {
+        return successful ? this : rhs;
+    }
 }
 
-private ParseResult!T parseResultOk(T)(T value)
+private ParseResult parseResultOk(T)(T value)
 {
-    return ParseResult!T(value, true);
+    return ParseResult(JSONValue(value), true);
 }
 
-private ParseResult!T parseResultFail(T)()
+private ParseResult parseResultFail(T)()
 {
-    return ParseResult!T(T.init, false);
+    return ParseResult(JSONValue(T.init), false);
 }
 
 private void skipWhitespace(R)(ref R range)
@@ -50,7 +55,7 @@ private bool parseLiteral(string name, R)(ref R range)
     return range.skipOver(name);
 }
 
-private ParseResult!double parseNumber(R)(ref R range)
+private ParseResult parseNumber(R)(ref R range)
 {
     import std.ascii : isDigit, toLower;
     import std.conv  : ConvException, to;
@@ -157,7 +162,7 @@ private ParseResult!double parseNumber(R)(ref R range)
     }
 }
 
-private ParseResult!string parseString(R)(ref R range)
+private ParseResult parseString(R)(ref R range)
 {
     import std.ascii : isControl, isDigit, isHexDigit;
     import std.conv  : text;
@@ -287,7 +292,7 @@ private bool parseAggregate(string delims, alias fun, R)(ref R range)
     return true;
 }
 
-private ParseResult!(JSONValue[]) parseArray(R)(ref R range)
+private ParseResult parseArray(R)(ref R range)
 {
     JSONValue[] array;
 
@@ -298,14 +303,14 @@ private ParseResult!(JSONValue[]) parseArray(R)(ref R range)
     return successful ? parseResultOk(array) : parseResultFail!(typeof(array));
 }
 
-private ParseResult!(JSONValue[string]) parseObject(R)(ref R range)
+private ParseResult parseObject(R)(ref R range)
 {
     JSONValue[string] obj;
 
     immutable successful = range.parseAggregate!("{}", {
         string key;
         if (auto result = parseString(range)) {
-            key = result.value;
+            key = result.value.as!string;
 
             if (key in obj) {
                 throw new JSONException(
@@ -338,14 +343,14 @@ private JSONValue parseValue(R)(ref R range)
         return JSONValue(true);
     } else if (parseLiteral!"false"(range)) {
         return JSONValue(false);
-    } else if (auto parseResult = parseNumber(range)) {
-        return JSONValue(parseResult.value);
-    } else if (auto parseResult = parseString(range)) {
-        return JSONValue(parseResult.value);
-    } else if (auto parseResult = parseArray(range)) {
-        return JSONValue(parseResult.value);
-    } else if (auto parseResult = parseObject(range)) {
-        return JSONValue(parseResult.value);
+    }
+
+    auto parseResult = parseNumber(range) |
+                       parseString(range) |
+                       parseArray(range)  |
+                       parseObject(range);
+    if (parseResult) {
+        return parseResult.value;
     } else {
         throw new JSONException("malformed input");
     }
