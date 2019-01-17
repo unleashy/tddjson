@@ -18,7 +18,7 @@ private struct ParseResult
         return successful;
     }
 
-    ParseResult opBinary(string op : "|")(lazy ParseResult rhs)
+    ParseResult or(lazy ParseResult rhs)
     {
         return successful ? this : rhs;
     }
@@ -337,13 +337,13 @@ private ParseResult parseObject(R)(ref R range)
 
 private JSONValue parseValue(R)(ref R range)
 {
-    auto parseResult = parseLiteral!"null"(range)  |
-                       parseLiteral!"true"(range)  |
-                       parseLiteral!"false"(range) |
-                       parseNumber(range)          |
-                       parseString(range)          |
-                       parseArray(range)           |
-                       parseObject(range);
+    auto parseResult = parseLiteral!"null"(range).or(
+                       parseLiteral!"true"(range).or(
+                       parseLiteral!"false"(range).or(
+                       parseNumber(range).or(
+                       parseString(range).or(
+                       parseArray(range).or(
+                       parseObject(range)))))));
 
     if (parseResult) {
         return parseResult.value;
