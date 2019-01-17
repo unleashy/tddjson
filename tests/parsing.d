@@ -101,10 +101,10 @@ void testParseString()
     parseJSON(`"\uFFGH"`).shouldThrow!(JSONException);
 }
 
-void testParseArray() @system
+void testParseArray()
 {
-    parseJSON("[]").should == [];
-    parseJSON(" [ ] ").should == [];
+    parseJSON("[]").should == cast(JSONValue[]) [];
+    parseJSON(" [ ] ").should == cast(JSONValue[]) [];
     parseJSON("[").shouldThrow!(JSONException);
     parseJSON("[true]").should == [JSONValue(true)];
     parseJSON("[false]").should == [JSONValue(false)];
@@ -127,7 +127,7 @@ void testParseArray() @system
     parseJSON("[[1]").shouldThrow!(JSONException);
 }
 
-void testParseObject() @system
+void testParseObject()
 {
     parseJSON("{}").should == cast(JSONValue[string]) null;
     parseJSON(" { } ").should == cast(JSONValue[string]) null;

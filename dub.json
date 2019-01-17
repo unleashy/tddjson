@@ -9,10 +9,6 @@
 
     "targetPath": "bin",
 
-    "dependencies": {
-        "taggedalgebraic": "~>0.10.12"
-    },
-
     "configurations": [
         {
             "name": "library",
