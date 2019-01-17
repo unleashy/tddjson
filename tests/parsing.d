@@ -148,3 +148,62 @@ void testParseObject()
     parseJSON(`"l": "m" }`).shouldThrow!(JSONException);
     parseJSON(`{"a": 1, "a": 2}`).shouldThrow!(JSONException);
 }
+
+void testParseRanges()
+{
+    struct StrRange(bool isFwd)
+    {
+    @safe:
+        string s;
+
+        bool empty()
+        {
+            return !s.length;
+        }
+
+        char front()
+        in (!empty)
+        do
+        {
+            return s[0];
+        }
+
+        void popFront()
+        in (!empty)
+        do
+        {
+            s = s[1 .. $];
+        }
+
+        static if (isFwd) {
+            StrRange save()
+            {
+                return StrRange(s[]);
+            }
+        }
+    }
+
+    immutable input = `
+        {
+            "A": {
+                "B": "\u0000",
+                "C": 800,
+                "D": false,
+                "E": [1.0, -2.5, 0e1]
+            }
+        }
+    `;
+
+    immutable expected = JSONValue([
+        "A": JSONValue([
+            "B": JSONValue("\0"),
+            "C": JSONValue(800),
+            "D": JSONValue(false),
+            "E": JSONValue([JSONValue(1.0), JSONValue(-2.5), JSONValue(0e1)])
+        ])
+    ]);
+
+    parseJSON(StrRange!true(input)) == expected;
+
+    static assert(!__traits(compiles, parseJSON(StrRange!false(input))));
+}
