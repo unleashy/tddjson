@@ -18,20 +18,20 @@ private struct ParseResult
         return successful;
     }
 
-    ParseResult opBinary(string op : "|")(auto ref ParseResult rhs)
+    ParseResult opBinary(string op : "|")(lazy ParseResult rhs)
     {
         return successful ? this : rhs;
     }
 }
 
-private ParseResult parseResultOk(T)(T value)
+private ParseResult parseResultOk(T)(T value) @nogc pure
 {
     return ParseResult(JSONValue(value), true);
 }
 
-private ParseResult parseResultFail(T)()
+private ParseResult parseResultFail() @nogc pure
 {
-    return ParseResult(JSONValue(T.init), false);
+    return ParseResult(JSONValue.init, false);
 }
 
 private void skipWhitespace(R)(ref R range)
@@ -49,10 +49,10 @@ private void skipWhitespace(R)(ref R range)
     }
 }
 
-private bool parseLiteral(string name, R)(ref R range)
+private ParseResult parseLiteral(string name, R)(ref R range)
 {
     import std.algorithm.searching : skipOver;
-    return range.skipOver(name);
+    return range.skipOver(name) ? parseResultOk(mixin(name)) : parseResultFail();
 }
 
 private ParseResult parseNumber(R)(ref R range)
@@ -62,7 +62,7 @@ private ParseResult parseNumber(R)(ref R range)
 
     // ensure this is at least the start of a possible number token
     if (range.empty || (range.front != '-' && !range.front.isDigit())) {
-        return parseResultFail!(double);
+        return parseResultFail();
     }
 
     string processed;
@@ -169,7 +169,7 @@ private ParseResult parseString(R)(ref R range)
 
     // make sure this is at least the start of a string token
     if (range.empty || range.front != '"') {
-        return parseResultFail!(string);
+        return parseResultFail();
     }
 
     // since we know the first char is a quotation mark, skip it
@@ -300,7 +300,7 @@ private ParseResult parseArray(R)(ref R range)
         array ~= parseValue(range);
     });
 
-    return successful ? parseResultOk(array) : parseResultFail!(typeof(array));
+    return successful ? parseResultOk(array) : parseResultFail();
 }
 
 private ParseResult parseObject(R)(ref R range)
@@ -332,23 +332,19 @@ private ParseResult parseObject(R)(ref R range)
         obj[key] = parseValue(range);
     });
 
-    return successful ? parseResultOk(obj) : parseResultFail!(typeof(obj));
+    return successful ? parseResultOk(obj) : parseResultFail();
 }
 
 private JSONValue parseValue(R)(ref R range)
 {
-    if (parseLiteral!"null"(range)) {
-        return JSONValue(null);
-    } else if (parseLiteral!"true"(range)) {
-        return JSONValue(true);
-    } else if (parseLiteral!"false"(range)) {
-        return JSONValue(false);
-    }
-
-    auto parseResult = parseNumber(range) |
+    auto parseResult = parseLiteral!"null"(range) |
+                       parseLiteral!"true"(range) |
+                       parseLiteral!"false"(range) |
+                       parseNumber(range) |
                        parseString(range) |
                        parseArray(range)  |
                        parseObject(range);
+
     if (parseResult) {
         return parseResult.value;
     } else {

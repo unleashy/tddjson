@@ -38,13 +38,13 @@ struct JSONValue
 
         static foreach (it; Value.tupleof)
         {
-            this(inout(typeof(it)) value) @nogc @trusted inout
+            this(inout(typeof(it)) value) @nogc @trusted inout pure
             {
                 it = value;
             }
         }
 
-        this(inout(int) value) @nogc @trusted inout
+        this(inout(int) value) @nogc @trusted inout pure
         {
             number = value;
         }
@@ -55,7 +55,7 @@ struct JSONValue
 
     static foreach (it; Value.tupleof)
     {
-        this(inout(typeof(it)) value) @nogc inout
+        this(inout(typeof(it)) value) @nogc inout pure
         {
             type_  = __traits(getAttributes, it)[0];
             value_ = inout(Value)(value);
@@ -82,7 +82,7 @@ struct JSONValue
     }
 
     // workaround for number literal -> bool conversion
-    this(inout(int) num) @nogc inout
+    this(inout(int) num) @nogc inout pure
     {
         type_  = Type.Number;
         value_ = Value(num);
