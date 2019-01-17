@@ -337,12 +337,12 @@ private ParseResult parseObject(R)(ref R range)
 
 private JSONValue parseValue(R)(ref R range)
 {
-    auto parseResult = parseLiteral!"null"(range) |
-                       parseLiteral!"true"(range) |
+    auto parseResult = parseLiteral!"null"(range)  |
+                       parseLiteral!"true"(range)  |
                        parseLiteral!"false"(range) |
-                       parseNumber(range) |
-                       parseString(range) |
-                       parseArray(range)  |
+                       parseNumber(range)          |
+                       parseString(range)          |
+                       parseArray(range)           |
                        parseObject(range);
 
     if (parseResult) {
