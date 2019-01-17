@@ -1,6 +1,7 @@
 module tddjson.parsing;
 
-import std.range.primitives : empty, front, popFront;
+import std.range.primitives;
+import std.traits : Unqual;
 
 import tddjson.exception;
 import tddjson.value;
@@ -28,10 +29,10 @@ private ParseResult!T parseResultFail(T)()
     return ParseResult!T(T.init, false);
 }
 
-private void skipWhitespace(ref string str)
+private void skipWhitespace(R)(ref R range)
 {
-    for (; !str.empty; str.popFront()) {
-        switch (str.front) {
+    for (; !range.empty; range.popFront()) {
+        switch (range.front) {
             case '\t':
             case '\n':
             case '\r':
@@ -43,60 +44,51 @@ private void skipWhitespace(ref string str)
     }
 }
 
-private bool parseLiteral(string name)(ref string str)
+private bool parseLiteral(string name, R)(ref R range)
 {
-    if (str.length >= name.length && str[0 .. name.length] == name) {
-        str = str[name.length .. $]; // advance past the literal
-        return true;
-    } else {
-        return false;
-    }
+    import std.algorithm.searching : skipOver;
+    return range.skipOver(name);
 }
 
-private string spanBetweenSlices(in string left, in string right) @trusted
-{
-    return left[0 .. (right.ptr - left.ptr)];
-}
-
-private ParseResult!double parseNumber(ref string str)
+private ParseResult!double parseNumber(R)(ref R range)
 {
     import std.ascii : isDigit, toLower;
     import std.conv  : ConvException, to;
 
     // ensure this is at least the start of a possible number token
-    if (str.empty || (str.front != '-' && !str.front.isDigit())) {
+    if (range.empty || (range.front != '-' && !range.front.isDigit())) {
         return parseResultFail!(double);
     }
 
-    auto originalStr = str;
+    string processed;
 
-    if (str.front == '-') {
-        str.popFront();
-        if (str.empty) {
+    if (range.front == '-') {
+        range.popFront();
+        if (range.empty) {
             throw new JSONException("stray minus sign");
         }
+
+        processed = "-";
     }
 
     bool consumedOneDigit = false;
 
-    if (str.front == '0') {
-        str.popFront();
+    if (range.front == '0') {
+        range.popFront();
 
-        if (!str.empty) {
-            immutable c = str.front;
-            if (c.isDigit()) {
-                throw new JSONException("leading zeros are not allowed");
-            }
+        if (!range.empty && range.front.isDigit()) {
+            throw new JSONException("leading zeros are not allowed");
         }
 
+        processed ~= '0';
         consumedOneDigit = true;
     }
 
     bool consumedPoint = false;
 
     Lnumloop:
-    for (; !str.empty; str.popFront()) {
-        immutable c = str.front;
+    for (; !range.empty; range.popFront()) {
+        immutable c = range.front;
         switch (c) {
             case '0': .. case '9':
                 consumedOneDigit = true;
@@ -114,26 +106,30 @@ private ParseResult!double parseNumber(ref string str)
             default:
                 break Lnumloop;
         }
+
+        processed ~= c;
     }
 
     // try to parse an exponent if available
-    if (consumedOneDigit && !str.empty && str.front.toLower() == 'e') {
-        str.popFront();
+    if (consumedOneDigit && !range.empty && range.front.toLower() == 'e') {
+        range.popFront();
+        processed ~= 'e';
 
         // try for minus or plus sign
-        if (str.empty || (str.front != '-' && str.front != '+' && !str.front.isDigit())) {
+        if (range.empty || (range.front != '-' && range.front != '+' && !range.front.isDigit())) {
             throw new JSONException("expected number for exponent");
         }
 
-        if (str.front == '-' || str.front == '+') {
-            str.popFront();
+        if (range.front == '-' || range.front == '+') {
+            processed ~= range.front;
+            range.popFront();
         }
 
         consumedOneDigit = false;
 
         Lexploop:
-        for (; !str.empty; str.popFront()) {
-            immutable c = str.front;
+        for (; !range.empty; range.popFront()) {
+            immutable c = range.front;
             switch (c) {
                 case '0': .. case '9':
                     consumedOneDigit = true;
@@ -141,6 +137,8 @@ private ParseResult!double parseNumber(ref string str)
 
                 default: break Lexploop;
             }
+
+            processed ~= c;
         }
     }
 
@@ -150,8 +148,7 @@ private ParseResult!double parseNumber(ref string str)
 
     try {
         // only try to convert the text we actually processed!
-        auto processedSlice = spanBetweenSlices(originalStr, str);
-        return parseResultOk(to!double(processedSlice));
+        return parseResultOk(to!double(processed));
     } catch (ConvException e) {
         throw new JSONException(
             e.msg ~ " while converting number token to floating-point",
@@ -160,32 +157,32 @@ private ParseResult!double parseNumber(ref string str)
     }
 }
 
-private ParseResult!string parseString(ref string str)
+private ParseResult!string parseString(R)(ref R range)
 {
     import std.ascii : isControl, isDigit, isHexDigit;
     import std.conv  : text;
 
     // make sure this is at least the start of a string token
-    if (str.empty || str.front != '"') {
+    if (range.empty || range.front != '"') {
         return parseResultFail!(string);
     }
 
     // since we know the first char is a quotation mark, skip it
-    str.popFront();
+    range.popFront();
 
     string value;
 
-    for (; !str.empty; str.popFront()) {
-        auto c = str.front;
+    for (; !range.empty; range.popFront()) {
+        dchar c = range.front;
         if (c == '"') {
             break;
         } else if (c == '\\') {
-            str.popFront();
-            if (str.empty) {
+            range.popFront();
+            if (range.empty) {
                 throw new JSONException("expected escape sequence after backslash");
             }
 
-            immutable escapeSeq = str.front;
+            immutable escapeSeq = range.front;
             switch (escapeSeq) {
                 case '"':  c = '"';  break;
                 case '\\': c = '\\'; break;
@@ -198,15 +195,15 @@ private ParseResult!string parseString(ref string str)
                 case 'u':
                     dchar escapedChar = 0;
                     foreach (i; 0 .. 4) {
-                        str.popFront();
+                        range.popFront();
 
-                        if (str.empty) {
+                        if (range.empty) {
                             throw new JSONException(text(
                                 `expected 4 hexadecimal digits after \\u, not `, i
                             ));
                         }
 
-                        immutable digit = str.front;
+                        immutable digit = range.front;
                         if (digit.isDigit()) {
                             escapedChar = escapedChar * 16 + (digit - '0');
                         } else if (digit.isHexDigit()) {
@@ -238,76 +235,76 @@ private ParseResult!string parseString(ref string str)
     }
 
     // expecting closing quotation mark here
-    if (str.empty || str.front != '"') {
+    if (range.empty || range.front != '"') {
         throw new JSONException("unclosed string");
     }
 
     // skip closing quotation mark...
-    str.popFront();
+    range.popFront();
     return parseResultOk(value);
 }
 
-private bool parseAggregate(string delims, alias fun)(ref string str)
+private bool parseAggregate(string delims, alias fun, R)(ref R range)
 {
     static assert(delims.length == 2, "need two delimiters for each side!");
 
     enum leftDelim  = delims[0];
     enum rightDelim = delims[1];
 
-    skipWhitespace(str);
+    skipWhitespace(range);
 
-    if (str.empty || str.front != leftDelim) {
+    if (range.empty || range.front != leftDelim) {
         return false;
     }
 
-    str.popFront();
-    skipWhitespace(str);
+    range.popFront();
+    skipWhitespace(range);
 
-    while (!str.empty && str.front != rightDelim) {
+    while (!range.empty && range.front != rightDelim) {
         fun();
 
-        skipWhitespace(str);
+        skipWhitespace(range);
 
-        if (str.empty || str.front != ',') {
+        if (range.empty || range.front != ',') {
             break;
         }
 
-        str.popFront();
-        skipWhitespace(str);
+        range.popFront();
+        skipWhitespace(range);
 
-        if (str.empty || str.front == rightDelim) {
+        if (range.empty || range.front == rightDelim) {
             throw new JSONException("trailing comma not allowed");
         }
     }
 
-    if (str.empty || str.front != rightDelim) {
+    if (range.empty || range.front != rightDelim) {
         throw new JSONException("unclosed aggregate");
     }
 
-    str.popFront();
-    skipWhitespace(str);
+    range.popFront();
+    skipWhitespace(range);
 
     return true;
 }
 
-private ParseResult!(JSONValue[]) parseArray(ref string str)
+private ParseResult!(JSONValue[]) parseArray(R)(ref R range)
 {
     JSONValue[] array;
 
-    immutable successful = str.parseAggregate!("[]", {
-        array ~= parseValue(str);
+    immutable successful = range.parseAggregate!("[]", {
+        array ~= parseValue(range);
     });
 
     return successful ? parseResultOk(array) : parseResultFail!(typeof(array));
 }
 
-private ParseResult!(JSONValue[string]) parseObject(ref string str)
+private ParseResult!(JSONValue[string]) parseObject(R)(ref R range)
 {
     JSONValue[string] obj;
 
-    immutable successful = str.parseAggregate!("{}", {
+    immutable successful = range.parseAggregate!("{}", {
         string key;
-        if (auto result = parseString(str)) {
+        if (auto result = parseString(range)) {
             key = result.value;
 
             if (key in obj) {
@@ -319,53 +316,57 @@ private ParseResult!(JSONValue[string]) parseObject(ref string str)
             throw new JSONException("expected string key in object");
         }
 
-        skipWhitespace(str);
-        if (str.empty || str.front != ':') {
+        skipWhitespace(range);
+        if (range.empty || range.front != ':') {
             throw new JSONException("expected colon after object key");
         }
 
-        str.popFront();
-        skipWhitespace(str);
+        range.popFront();
+        skipWhitespace(range);
 
-        obj[key] = parseValue(str);
+        obj[key] = parseValue(range);
     });
 
     return successful ? parseResultOk(obj) : parseResultFail!(typeof(obj));
 }
 
-private JSONValue parseValue(ref string str)
+private JSONValue parseValue(R)(ref R range)
 {
-    if (parseLiteral!"null"(str)) {
+    if (parseLiteral!"null"(range)) {
         return JSONValue(null);
-    } else if (parseLiteral!"true"(str)) {
+    } else if (parseLiteral!"true"(range)) {
         return JSONValue(true);
-    } else if (parseLiteral!"false"(str)) {
+    } else if (parseLiteral!"false"(range)) {
         return JSONValue(false);
-    } else if (auto parseResult = parseNumber(str)) {
+    } else if (auto parseResult = parseNumber(range)) {
         return JSONValue(parseResult.value);
-    } else if (auto parseResult = parseString(str)) {
+    } else if (auto parseResult = parseString(range)) {
         return JSONValue(parseResult.value);
-    } else if (auto parseResult = parseArray(str)) {
+    } else if (auto parseResult = parseArray(range)) {
         return JSONValue(parseResult.value);
-    } else if (auto parseResult = parseObject(str)) {
+    } else if (auto parseResult = parseObject(range)) {
         return JSONValue(parseResult.value);
     } else {
         throw new JSONException("malformed input");
     }
 }
 
-JSONValue parseJSON(string str)
+private enum isStringyFwdRange(R) =
+    isForwardRange!R && is(Unqual!(ElementType!R) : dchar);
+
+JSONValue parseJSON(R)(R range)
+    if (isStringyFwdRange!R)
 {
-    skipWhitespace(str);
-    if (str.empty) {
-        throw new JSONException("string is empty");
+    skipWhitespace(range);
+    if (range.empty) {
+        throw new JSONException("input is empty");
     }
 
-    JSONValue value = parseValue(str);
+    JSONValue value = parseValue(range);
 
-    skipWhitespace(str);
-    if (!str.empty) {
-        throw new JSONException("extraneous characters after the end of the document");
+    skipWhitespace(range);
+    if (!range.empty) {
+        throw new JSONException("extraneous characters after the end of input");
     }
 
     return value;
